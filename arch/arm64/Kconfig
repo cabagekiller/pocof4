@@ -211,7 +211,6 @@ config ARM64
 	help
 	  ARM 64-bit (AArch64) Linux support.
 
-
 config 64BIT
 	def_bool y
 
