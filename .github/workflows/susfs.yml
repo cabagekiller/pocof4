@@ -122,7 +122,7 @@ jobs:
         export KBUILD_BUILD_HOST="Github"
         mkdir -p artifacts # Create the artifacts directory
         make O=out vendor/alioth_defconfig V=1 PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH"
-        make O=out V=1 CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH" CROSS_COMPILE=aarch64-linux-gnu- > artifacts/build_log.txt 2>&1
+        make O=out V=1 CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH" CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1 > artifacts/build_log.txt 2>&1
         find out/net -name "*.o" -print > artifacts/object_files.txt
         find out/net -name "*.a" -print >> artifacts/object_files.txt
 
