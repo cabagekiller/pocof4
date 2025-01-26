@@ -114,16 +114,26 @@ jobs:
       id: kernel
     - name: Building kernel
       run: |
-        bash ksu.sh
+       set -x # Enable xtrace
+        bash ksu.sh # Run the custom script
         export ARCH=arm64
         export SUBARCH=ARM64
         export KBUILD_BUILD_USER="aliza"
         export KBUILD_BUILD_HOST="Github"
+        mkdir -p artifacts # Create the artifacts directory
         make O=out vendor/alioth_defconfig V=1 PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH"
-        make O=out V=1 CC=clang -j$(nproc --all) PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH" CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1
-        echo "elapsed_time=$(echo "$(date +%s)"-"${{ steps.workspace.outputs.start_time }}" | bc)" >> $GITHUB_OUTPUT
+        make O=out V=1 CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH" CROSS_COMPILE=aarch64-linux-gnu- > artifacts/build_log.txt 2>&1
+        find out/net -name "*.o" -print > artifacts/object_files.txt
+        find out/net -name "*.a" -print >> artifacts/object_files.txt
+
       working-directory: ${{ steps.kernel.outputs.kernel-folder }}
       id: build
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: artifacts/
     - name: AnyKernel3
       if: ${{ success() && github.event.inputs.ANYKERNEL_URL != '' }}
       run: |
