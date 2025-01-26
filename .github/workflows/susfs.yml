@@ -86,7 +86,7 @@ jobs:
             python3-setuptools \
             rsync \
             ccache \
-            llvm-ar
+            llvm-dev
       id: workspace
     - name: Free disk space
       run: |
