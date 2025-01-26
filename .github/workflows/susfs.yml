@@ -1,4 +1,5 @@
-ame: Kernel Build (munch) - SUSFS + KSU NEXT | clang-r547379
+name: Kernel Build (munch) - SUSFS + KSU NEXT | clang-r547379
+
 on:
   pull_request:
   workflow_dispatch:
