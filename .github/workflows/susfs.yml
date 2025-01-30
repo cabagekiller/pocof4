@@ -108,16 +108,31 @@ jobs:
 
       - name: Build kernel
         run: |
-          set -e
+          set -e # Exit on error
+          set -x # Enable debugging (optional)
+
+          # Run custom script (if needed)
           bash ksu.sh
+
+          # Set environment variables
           export ARCH=arm64
-          export SUBARCH=ARM64
           export KBUILD_BUILD_USER="aliza"
           export KBUILD_BUILD_HOST="Github"
+
+          # Create artifacts directory
           mkdir -p artifacts
-          make O=out vendor/alioth_defconfig V=1 PATH="${{ env.TOOLS_FOLDER }}/clang/bin:$PATH"
-          make O=out CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) PATH="${{ env.TOOLS_FOLDER }}/clang/bin:$PATH" CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1
-        working-directory: ${{ env.KERNEL_FOLDER }}
+
+          # Generate defconfig
+          make O=out vendor/alioth_defconfig V=1 PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH"
+
+          # Build kernel
+          make O=out V=1 CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) \
+              PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH" \
+              CROSS_COMPILE=aarch64-linux-gnu- > artifacts/build_log.txt 2>&1
+
+          # Find object files (optional)
+          find out -name "*.o" -o -name "*.a" > artifacts/object_files.txt
+                  working-directory: ${{ env.KERNEL_FOLDER }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
