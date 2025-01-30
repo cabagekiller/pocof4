@@ -87,6 +87,13 @@ jobs:
             llvm-dev \
             libncurses6
 
+      - name: Set up Clang
+        if: steps.clang-cache.outputs.cache-hit != 'true'
+        run: |
+          wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r522817.tar.gz -O clang.tar.gz
+          mkdir -p clang
+          tar -xf clang.tar.gz -C clang
+          
       - name: Cache Clang
         id: clang-cache
         uses: actions/cache@v3
@@ -94,13 +101,6 @@ jobs:
           path: clang
           key: clang-${{ hashFiles('clang.tar.gz') }}
           restore-keys: clang-
-
-      - name: Set up Clang
-        if: steps.clang-cache.outputs.cache-hit != 'true'
-        run: |
-          wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r522817.tar.gz -O clang.tar.gz
-          mkdir -p clang
-          tar -xf clang.tar.gz -C clang
 
       - name: Clone kernel source
         run: |
