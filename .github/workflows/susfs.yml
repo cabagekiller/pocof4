@@ -116,14 +116,14 @@ jobs:
 
           # Set environment variables
           export ARCH=arm64
-          export KBUILD_BUILD_USER="aliza"
+          export KBUILD_BUILD_USER="cabagekiller"
           export KBUILD_BUILD_HOST="Github"
 
           # Create artifacts directory
           mkdir -p artifacts
 
           # Generate defconfig
-          make O=out vendor/alioth_defconfig V=1 PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH"
+          make O=out vendor/munch_defconfig V=1 PATH="${{ steps.tools.outputs.tools-folder }}/clang/bin:$PATH"
 
           # Build kernel
           make O=out V=1 CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) \
