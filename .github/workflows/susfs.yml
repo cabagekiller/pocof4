@@ -46,10 +46,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      CODENAME: ${{ github.event.inputs.CODENAME }}
-      KERNEL_FOLDER: ${{ steps.kernel.outputs.kernel-folder }}
-      TOOLS_FOLDER: ${{ steps.tools.outputs.tools-folder }}
     steps:
       - name: Display User Inputs
         run: |
