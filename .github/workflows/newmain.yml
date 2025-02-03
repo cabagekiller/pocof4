@@ -269,8 +269,7 @@ jobs:
         EOF
     - name: Make the script files executable and run it
       run: |
-         cd "$WORKSPACE_FOLDER"
-         echo "Current working directory after cd $WORKSPACE_FOLDER"
+         ls -l
          pwd
          # Corrected path to patches.sh - now inside 'patches_repo' directory
          chmod +x ../patches_repo/patches.sh
