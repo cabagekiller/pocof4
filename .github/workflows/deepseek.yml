@@ -128,15 +128,13 @@ jobs:
           #../kernel_patches/core_hook.c_fix.patch
         do
           echo "Applying patch: $(basename $patch)"
-          patch -p1 -F 3 --no-backup-if-mismatch < "$patch" || true
+          patch -p1 -F 4 --no-backup-if-mismatch < "$patch" || true
         done
         
         echo "--- SUSFS and Hide Stuff Patches applied ---"
         echo "Current working directory (Kernel Root) AFTER SUSFS patches:" # Note: Kernel Root dir
         pwd
-        cd ./common
         git add -A && git commit -a -m "BUILD Kernel" || true
-        cd ..
         git add -A && git commit -a -m "BUILD Kernel" || true
         git rm --cached KernelSU-Next
 
