@@ -140,7 +140,7 @@ jobs:
         git clone --depth=1 ${{ github.event.inputs.KERNEL_TREE }} -b ${{ github.event.inputs.KERNEL_TREE_BRANCH }} kernel_tree
         echo "kernel-folder=$(pwd)/kernel_tree" >> $GITHUB_OUTPUT
         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b kernel-4.19 susfs4ksu # Clone directly in workspace
-        git clone https://github.com/TheWildJames/kernel_patches.git kernel_patches # Clone directly in workspace
+        git clone https://github.com/WildPlusKernel/kernel_patches.git kernel_patches # Clone directly in workspace
         git clone https://github.com/cabagekiller/Non-GKI-Patches.git patches_repo
         cd kernel_tree # Now change to kernel_tree for the rest of the steps
         mkdir -p common/fs common/include/linux # Create directories upfront
@@ -159,12 +159,13 @@ jobs:
         # Apply KernelSU Next (Run ONCE - ensure no repeated execution in workflow)
         echo "--- Setting up KernelSU-Next ---"
         rm -rf KernelSU-Next # Ensure fresh setup each time
-        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
+        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next
         echo "--- KernelSU-Next setup complete ---"
         # --- Debugging and Corrected Patch Copying (same as before) ---
         echo "--- Debugging Patch File Copying ---"
         SUSFS4KSU_PATCHES_FOLDER="$WORKSPACE_FOLDER/susfs4ksu/kernel_patches"
         KERNEL_PATCHES_FOLDER="$WORKSPACE_FOLDER/kernel_patches"
+        SUSFS_FIX_ALL_PATCHES_SRC="$KERNEL_PATCHES_FOLDER/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch"
         SUSFS_PATCH_50_SRC="$SUSFS4KSU_PATCHES_FOLDER/50_add_susfs_in_kernel-4.19.patch"
         HIDE_STUFF_PATCH_69_SRC="$KERNEL_PATCHES_FOLDER/69_hide_stuff.patch"
         KSU_SUSFS_PATCH_10_SRC="$SUSFS4KSU_PATCHES_FOLDER/KernelSU/10_enable_susfs_for_ksu.patch"
@@ -173,22 +174,24 @@ jobs:
         MAKEFILE_FIX_SRC="$KERNEL_PATCHES_FOLDER/Makefile_fix.patch"
         CORE_HOOK_C_FIX_SRC="$KERNEL_PATCHES_FOLDER/core_hook.c_fix.patch"
         SUSFS_PATCH_50_DST="./50_add_susfs.patch"
+        SUSFS_FIX_ALL_PATCH_DST="./KernelSU_Next/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch"
         HIDE_STUFF_PATCH_69_DST="./69_hide_stuff.patch"
-        KSU_SUSFS_PATCH_10_DST="./KernelSU-Next/10_enable_susfs_for_ksu.patch"
-        SELINUX_C_FIX_DST="./selinux.c_fix.patch"
-        APK_SIGN_C_FIX_DST="./apk_sign.c_fix.patch"
-        MAKEFILE_FIX_DST="./Makefile_fix.patch"
-        CORE_HOOK_C_FIX_DST="./core_hook.c_fix.patch"
+        #KSU_SUSFS_PATCH_10_DST="./KernelSU-Next/10_enable_susfs_for_ksu.patch"
+        #SELINUX_C_FIX_DST="./selinux.c_fix.patch"
+        #APK_SIGN_C_FIX_DST="./apk_sign.c_fix.patch"
+        #MAKEFILE_FIX_DST="./Makefile_fix.patch"
+        #CORE_HOOK_C_FIX_DST="./core_hook.c_fix.patch"
         echo "Checking source patch file existence:"
         ls -l "$SUSFS_PATCH_50_SRC"
         ls -l "$HIDE_STUFF_PATCH_69_SRC"
-        ls -l "$KSU_SUSFS_PATCH_10_SRC"
-        ls -l "$SELINUX_C_FIX_SRC"
-        ls -l "$APK_SIGN_C_FIX_SRC"
-        ls -l "$MAKEFILE_FIX_SRC"
-        ls -l "$CORE_HOOK_C_FIX_SRC"
+        #ls -l "$KSU_SUSFS_PATCH_10_SRC"
+        #ls -l "$SELINUX_C_FIX_SRC"
+        #ls -l "$APK_SIGN_C_FIX_SRC"
+        #ls -l "$MAKEFILE_FIX_SRC"
+        #ls -l "$CORE_HOOK_C_FIX_SRC"
         echo "Copying patch files..."
         mkdir -p ./fs ./include/linux ./KernelSU-Next
+        cp "SUSFS_FIX_ALL_PATCHES_SRC" "SUSFS_FIX_ALL_PATCH_DST"
         cp "$SUSFS_PATCH_50_SRC" "$SUSFS_PATCH_50_DST"
         cp "$HIDE_STUFF_PATCH_69_SRC" "$HIDE_STUFF_PATCH_69_DST"
         cp "$KSU_SUSFS_PATCH_10_SRC" "$KSU_SUSFS_PATCH_10_DST"
@@ -202,6 +205,7 @@ jobs:
         cd KernelSU-Next
         echo "Current working directory (KernelSU-Next):"
         pwd
+        patch -p1 -N < KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch || true
         #patch -p1 -N < 10_enable_susfs_for_ksu.patch || true
         cd .. # Back to kernel root
         echo "--- KernelSU Patch applied ---"
