@@ -68,20 +68,30 @@ jobs:
     - name: Setup Clang
       if: steps.clang-cache.outputs.cache-hit != 'true'
       run: |
-        echo "Workspace path: $GITHUB_WORKSPACE"
-        echo "Clang target path: ${{ env.CLANG_DIR }}"
+        # Create both parent and target directories
+        mkdir -p "${{ env.CLANG_DIR }}"
     
-        # Create parent directories explicitly
-        mkdir -p $(dirname "${{ env.CLANG_DIR }}")
+        # Download with retries
+        for i in {1..3}; do
+          wget -q --show-progress \
+            https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/main/clang-r547379.tar.gz \
+            -O clang.tar.gz && break || sleep 5
+        done
+
+        # Verify and extract
+        echo "Verifying archive structure..."
+        tar -tzf clang.tar.gz >/dev/null || (echo "Invalid archive!" && exit 1)
     
-        # Download and extract with verification
-        wget -q --show-progress https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/main/clang-r547379.tar.gz
-        echo "Verifying archive integrity..."
-        tar -tzf clang-r547379.tar.gz >/dev/null 2>&1 || (echo "Corrupted clang archive!" && exit 1)
-        tar --warning=no-unknown-keyword -xzf clang-r547379.tar.gz -C "${{ env.CLANG_DIR }}"
+        echo "Extracting to: ${{ env.CLANG_DIR }}"
+        tar -xzf clang.tar.gz \
+          --directory="${{ env.CLANG_DIR }}" \
+          --warning=no-unknown-keyword \
+          --no-same-owner
     
         # Verify extraction
-        ls -la ${{ env.CLANG_DIR }}/bin/clang || (echo "Clang extraction failed!" && exit 1)
+        [ -f "${{ env.CLANG_DIR }}/bin/clang" ] || (echo "Clang extraction failed!" && exit 1)
+        echo "Clang version:"
+        ${{ env.CLANG_DIR }}/bin/clang --version | head -n1
 
     - name: Setup ccache
       uses: hendrikmuhs/ccache-action@v1.2
