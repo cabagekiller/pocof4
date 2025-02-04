@@ -183,7 +183,7 @@ jobs:
         #CORE_HOOK_C_FIX_DST="./core_hook.c_fix.patch"
         echo "Checking source patch file existence:"
         ls -l "$SUSFS_PATCH_50_SRC"
-        ls -l "SUSFS_FIX_ALL_PATCHES_SRC"
+        ls -l "$SUSFS_FIX_ALL_PATCHES_SRC"
         ls -l "$HIDE_STUFF_PATCH_69_SRC"
         #ls -l "$KSU_SUSFS_PATCH_10_SRC"
         #ls -l "$SELINUX_C_FIX_SRC"
@@ -192,7 +192,7 @@ jobs:
         #ls -l "$CORE_HOOK_C_FIX_SRC"
         echo "Copying patch files..."
         mkdir -p ./fs ./include/linux ./KernelSU-Next
-        cp "SUSFS_FIX_ALL_PATCHES_SRC" "SUSFS_FIX_ALL_PATCH_DST"
+        cp "$SUSFS_FIX_ALL_PATCHES_SRC" "$SUSFS_FIX_ALL_PATCH_DST"
         cp "$SUSFS_PATCH_50_SRC" "$SUSFS_PATCH_50_DST"
         cp "$HIDE_STUFF_PATCH_69_SRC" "$HIDE_STUFF_PATCH_69_DST"
         cp "$KSU_SUSFS_PATCH_10_SRC" "$KSU_SUSFS_PATCH_10_DST"
