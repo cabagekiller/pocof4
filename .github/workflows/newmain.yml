@@ -192,7 +192,18 @@ jobs:
         #ls -l "$CORE_HOOK_C_FIX_SRC"
         echo "Copying patch files..."
         mkdir -p ./fs ./include/linux ./KernelSU-Next
-        cp "$SUSFS_FIX_ALL_PATCHES_SRC" "$SUSFS_FIX_ALL_PATCH_DST"
+        #cp "$SUSFS_FIX_ALL_PATCHES_SRC" "$SUSFS_FIX_ALL_PATCH_DST"
+        SOURCE_PATH="/home/runner/work/pocof4testing/pocof4testing/workspace/kernel_patches/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch"
+        DESTINATION_PATH="/home/runner/work/pocof4testing/pocof4testing/workspace/KernelSU-Next"
+
+        # Create the destination directory if it doesn't exist (optional, but good practice)
+        mkdir -p "$DESTINATION_PATH"
+
+        # Move the patch file
+        mv "$SOURCE_PATH" "$DESTINATION_PATH"
+
+        # Optional: Verify the file has been moved (for debugging)
+        ls -l "$DESTINATION_PATH"
         cp "$SUSFS_PATCH_50_SRC" "$SUSFS_PATCH_50_DST"
         cp "$HIDE_STUFF_PATCH_69_SRC" "$HIDE_STUFF_PATCH_69_DST"
         cp "$KSU_SUSFS_PATCH_10_SRC" "$KSU_SUSFS_PATCH_10_DST"
