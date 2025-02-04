@@ -1,0 +1,201 @@
+name: Kernel Build (munch) - SUSFS + KSU NEXT | clang-r547379 Deepseek
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      BUILD_TITLE:
+        description: 'Custom Build Title'
+        required: false
+      KERNEL_TREE:
+        description: 'Kernel Tree'
+        default: 'https://github.com/cabagekiller/pocof4testing.git'
+        required: true
+      KERNEL_TREE_BRANCH:
+        description: 'Kernel Tree Branch'
+        required: true
+        default: 'munch'
+      CODENAME:
+        description: 'Phone Codename'
+        default: 'munch'
+        required: true
+      ANYKERNEL_URL:
+        description: 'AnyKernel URL'
+        default: 'https://github.com/WildPlusKernel/AnyKernel3.git'
+        required: false
+      SECOND_ANYKERNEL_URL:
+        description: 'Second AnyKernel URL'
+        default: 'https://github.com/WildPlusKernel/AnyKernel3.git'
+        required: false
+      UPLOAD_TO_RELEASE:
+        description: 'Upload to release'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    if: github.event.repository.owner.id == github.event.sender.id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      KERNEL_DIR: ${{ github.workspace }}/kernel_tree
+      CLANG_DIR: ${{ github.workspace }}/clang
+      ANY_KERNEL_DIR: ${{ github.workspace }}/AnyKernel
+
+    steps:
+    - name: Configure Git
+      run: |
+        git config --global user.name "build"
+        git config --global user.email "3436378798@qq.com"
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends \
+          bc bison build-essential ccache clang cpio flex git kmod libelf-dev \
+          libfl-dev libssl-dev lld llvm make ninja-build python3 python3-pip \
+          rsync wget zip unzip
+
+    - name: Cache Clang
+      uses: actions/cache@v4
+      id: clang-cache
+      with:
+        path: ${{ env.CLANG_DIR }}
+        key: clang-r547379-${{ runner.os }}
+        restore-keys: clang-r547379-
+
+    - name: Setup Clang
+      if: steps.clang-cache.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ${{ env.CLANG_DIR }}
+        wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/main/clang-r547379.tar.gz
+        tar -xf clang-r547379.tar.gz -C ${{ env.CLANG_DIR }}
+
+    - name: Setup ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        max-size: 2G
+
+    - name: Clone Kernel Source
+      run: |
+        git clone --depth=1 ${{ inputs.KERNEL_TREE }} -b ${{ inputs.KERNEL_TREE_BRANCH }} ${{ env.KERNEL_DIR }}
+        git clone https://gitlab.com/simonpunk/susfs4ksu.git -b kernel-4.19 ${{ github.workspace }}/susfs4ksu
+
+    - name: Apply SUSFS and KernelSU Patches
+      working-directory: ${{ env.KERNEL_DIR }}
+      run: |
+        # Copy SUSFS core files
+        cp -v ../susfs4ksu/kernel_patches/fs/susfs.c fs/
+        cp -v ../susfs4ksu/kernel_patches/include/linux/susfs.h include/linux/
+        cp -v ../susfs4ksu/kernel_patches/include/linux/susfs_def.h include/linux/
+
+        # Setup KernelSU Next with SUSFS integration
+        rm -rf KernelSU-Next
+        curl -sL "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
+
+        # Apply essential patches
+        for patch in \
+          ../susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.19.patch \
+          ../kernel_patches/69_hide_stuff.patch \
+          ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch \
+          ../kernel_patches/selinux.c_fix.patch \
+          ../kernel_patches/apk_sign.c_fix.patch \
+          ../kernel_patches/Makefile_fix.patch \
+          ../kernel_patches/core_hook.c_fix.patch
+        do
+          echo "Applying patch: $(basename $patch)"
+          patch -p1 --no-backup-if-mismatch < "$patch" || true
+        done
+
+        # Critical Makefile modifications
+        sed -i '2s/check_defconfig//' build.config.gki
+
+        # Apply SUSFS configs
+        cat >> arch/arm64/configs/defconfig <<EOF
+        CONFIG_KSU=y
+        CONFIG_KSU_SUSFS=y
+        CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
+        CONFIG_KSU_SUSFS_SUS_PATH=y
+        CONFIG_KSU_SUSFS_SUS_MOUNT=y
+        CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y
+        CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y
+        CONFIG_KSU_SUSFS_SUS_KSTAT=y
+        CONFIG_KSU_SUSFS_SUS_OVERLAYFS=y
+        CONFIG_KSU_SUSFS_TRY_UMOUNT=y
+        CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y
+        CONFIG_KSU_SUSFS_SPOOF_UNAME=y
+        CONFIG_KSU_SUSFS_ENABLE_LOG=y
+        CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
+        CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
+        CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
+        CONFIG_KPROBES is not set
+        CONFIG_HAVE_KPROBES is not set
+        CONFIG_KPROBE_EVENTS is not set
+        EOF
+
+    - name: Apply Additional Patches
+      working-directory: ${{ env.KERNEL_DIR }}
+      run: |
+        # Execute external patch script
+        chmod +x ../patches_repo/patches.sh
+        ../patches_repo/patches.sh
+
+    - name: Build Kernel
+      working-directory: ${{ env.KERNEL_DIR }}
+      env:
+        ARCH: arm64
+        SUBARCH: arm64
+        KBUILD_BUILD_USER: "cabagekiller"
+        KBUILD_BUILD_HOST: "Github"
+        PATH: ${{ env.CLANG_DIR }}/bin:$PATH
+      run: |
+        make O=out ARCH=$ARCH defconfig
+        make -j$(nproc) O=out CC=clang \
+          LLVM=1 LLVM_IAS=1 \
+          CROSS_COMPILE=aarch64-linux-gnu-
+
+    - name: Package Artifacts
+      working-directory: ${{ env.KERNEL_DIR }}/out/arch/arm64/boot
+      run: |
+        mkdir -p artifacts
+        cp Image.gz dtb dtbo.img artifacts/
+
+    - name: Create AnyKernel Zip
+      working-directory: ${{ env.KERNEL_DIR }}/out/arch/arm64/boot
+      run: |
+        create_anykernel() {
+          local url=$1 name=$2
+          [ -z "$url" ] && return
+
+          git clone --depth=1 "$url" AnyKernel-$name
+          cp Image.gz dtb dtbo.img AnyKernel-$name/
+          zip -qr9 $name-KSUNEXT-SUSFS-${{ inputs.CODENAME }}.zip AnyKernel-$name
+        }
+
+        create_anykernel "${{ inputs.ANYKERNEL_URL }}" "AOSP"
+        create_anykernel "${{ inputs.SECOND_ANYKERNEL_URL }}" "HYPEROS"
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-artifacts
+        path: |
+          ${{ env.KERNEL_DIR }}/out/arch/arm64/boot/artifacts
+          ${{ env.KERNEL_DIR }}/out/arch/arm64/boot/*.zip
+
+    - name: Create Release
+      if: ${{ inputs.UPLOAD_TO_RELEASE }}
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ${{ env.KERNEL_DIR }}/out/arch/arm64/boot/*.zip
+        tag_name: build-${{ github.run_number }}
+        name: ${{ inputs.CODENAME }}-${{ github.run_number }}
+        body: |
+          **Build Details**
+          - Kernel: ${{ inputs.KERNEL_TREE }}@${{ inputs.KERNEL_TREE_BRANCH }}
+          - Build Time: ${{ steps.build.outputs.elapsed_time }}s
+          - Runner: ${{ runner.os }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
