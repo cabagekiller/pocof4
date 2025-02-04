@@ -212,9 +212,9 @@ jobs:
         echo "Listing fs/Makefile before SUSFS patches:" # Listing from Kernel Root
         ls -l ./fs/Makefile # Corrected path to fs/Makefile
         echo "Applying 50_add_susfs.patch..."
-        patch -p1 -F 3 -N < 50_add_susfs.patch || true
+        patch -p1 -F 4 -N < 50_add_susfs.patch || true
         echo "Applying 69_hide_stuff.patch..."
-        patch -p1 -F 3 -N < 69_hide_stuff.patch || true
+        patch -p1 -F 4 -N < 69_hide_stuff.patch || true
         echo "Current working directory (Kernel Root) AFTER SUSFS patches:" # Note: Kernel Root dir
         pwd
         echo "--- SUSFS and Hide Stuff Patches applied ---"
@@ -243,7 +243,7 @@ jobs:
         echo "Current working directory (Kernel Root) for Makefile/config changes:"
         pwd
         sed -i '2s/check_defconfig//' ./build.config.gki # Operate on build.config.gki from kernel root
-        sed -i '/obj-$(CONFIG_KSU_SUSFS_SUS_SU) += sus_su.o/d' ./fs/Makefile # Corrected path to ./fs/Makefile
+        #sed -i '/obj-$(CONFIG_KSU_SUSFS_SUS_SU) += sus_su.o/d' ./fs/Makefile # Corrected path to ./fs/Makefile
         echo "fs/Makefile and build.config.gki changes applied."
         # Add SUSFS configuration settings (using a block echo for clarity) - Keep this section
         cat >> ./arch/arm64/configs/defconfig <<EOF
@@ -283,7 +283,7 @@ jobs:
         echo "3. Trying chmod +x $PATCHES_SH_PATH"
         chmod +x "$PATCHES_SH_PATH"
         echo "4. Trying to execute $PATCHES_SH_PATH"
-        #./"$PATCHES_SH_PATH"
+        ./"$PATCHES_SH_PATH"
         echo "--- Execute patches.sh Step Complete ---"
     - name: Building kernel
       id: build
