@@ -81,6 +81,8 @@ jobs:
       run: |
         git clone --depth=1 ${{ inputs.KERNEL_TREE }} -b ${{ inputs.KERNEL_TREE_BRANCH }} ${{ env.KERNEL_DIR }}
         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b kernel-4.19 ${{ github.workspace }}/susfs4ksu
+        git clone https://github.com/TheWildJames/kernel_patches.git kernel_patches
+        git clone https://github.com/cabagekiller/Non-GKI-Patches.git patches_repo
 
     - name: Apply SUSFS and KernelSU Patches
       working-directory: ${{ env.KERNEL_DIR }}
