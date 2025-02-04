@@ -217,7 +217,7 @@ jobs:
         cd KernelSU-Next
         echo "Current working directory (KernelSU-Next):"
         pwd
-        patch -p1 -N < KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch || true
+        patch -p1 -F 3 -N < KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch || true
         #patch -p1 -N < 10_enable_susfs_for_ksu.patch || true
         cd .. # Back to kernel root
         echo "--- KernelSU Patch applied ---"
@@ -228,9 +228,9 @@ jobs:
         echo "Listing fs/Makefile before SUSFS patches:" # Listing from Kernel Root
         ls -l ./fs/Makefile # Corrected path to fs/Makefile
         echo "Applying 50_add_susfs.patch..."
-        patch -p1 -F 4 -N < 50_add_susfs.patch || true
+        patch -p1 -F 3 -N < 50_add_susfs.patch || true
         echo "Applying 69_hide_stuff.patch..."
-        patch -p1 -F 4 -N < 69_hide_stuff.patch || true
+        patch -p1 -F 3 -N < 69_hide_stuff.patch || true
         echo "Current working directory (Kernel Root) AFTER SUSFS patches:" # Note: Kernel Root dir
         pwd
         echo "--- SUSFS and Hide Stuff Patches applied ---"
