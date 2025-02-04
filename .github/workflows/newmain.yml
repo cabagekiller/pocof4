@@ -174,7 +174,7 @@ jobs:
         MAKEFILE_FIX_SRC="$KERNEL_PATCHES_FOLDER/Makefile_fix.patch"
         CORE_HOOK_C_FIX_SRC="$KERNEL_PATCHES_FOLDER/core_hook.c_fix.patch"
         SUSFS_PATCH_50_DST="./50_add_susfs.patch"
-        SUSFS_FIX_ALL_PATCH_DST="./KernelSU_Next/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch"
+        SUSFS_FIX_ALL_PATCH_DST="../KernelSU_Next/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch"
         HIDE_STUFF_PATCH_69_DST="./69_hide_stuff.patch"
         #KSU_SUSFS_PATCH_10_DST="./KernelSU-Next/10_enable_susfs_for_ksu.patch"
         #SELINUX_C_FIX_DST="./selinux.c_fix.patch"
