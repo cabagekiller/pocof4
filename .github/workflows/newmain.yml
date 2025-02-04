@@ -267,13 +267,24 @@ jobs:
         # CONFIG_HAVE_KPROBES is not set
         # CONFIG_KPROBE_EVENTS is not set
         EOF
-    - name: Make the script files executable and run it
+    - name:  Execute patches.sh - USING WORKING-DIRECTORY
+      working-directory: ${{ steps.kernel.outputs.kernel-folder }} # Explicitly set working directory
       run: |
-         ls -l
-         pwd
-         # Corrected path to patches.sh - now inside 'patches_repo' directory
-         chmod +x ../patches_repo/patches.sh
-         ./../patches_repo/patches.sh
+        set -e
+        echo "--- Execute patches.sh Step (USING WORKING-DIRECTORY) ---"
+        # 1. Confirm current working directory (should be kernel root now)
+        echo "1. Current working directory (using 'working-directory' keyword):"
+        pwd
+        # 2. Check if patches.sh exists in patches_repo directory (using relative path from kernel root)
+        PATCHES_SH_PATH="../patches_repo/patches.sh"
+        echo "2. Checking if patches.sh exists at PATH: $PATCHES_SH_PATH (relative to kernel root)"
+        ls -l "$PATCHES_SH_PATH"
+        # 3. Try chmod and execute (using relative path from kernel root)
+        echo "3. Trying chmod +x $PATCHES_SH_PATH"
+        chmod +x "$PATCHES_SH_PATH"
+        echo "4. Trying to execute $PATCHES_SH_PATH"
+        ./"$PATCHES_SH_PATH"
+        echo "--- Execute patches.sh Step Complete ---"
     - name: Building kernel
       id: build
       run: |
