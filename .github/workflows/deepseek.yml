@@ -121,15 +121,24 @@ jobs:
         for patch in \
           ../susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.19.patch \
           ../kernel_patches/69_hide_stuff.patch \
-          ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch \
-          ../kernel_patches/selinux.c_fix.patch \
-          ../kernel_patches/apk_sign.c_fix.patch \
-          ../kernel_patches/Makefile_fix.patch \
-          ../kernel_patches/core_hook.c_fix.patch
+          #../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch \
+          #../kernel_patches/selinux.c_fix.patch \
+          #../kernel_patches/apk_sign.c_fix.patch \
+          #../kernel_patches/Makefile_fix.patch \
+          #../kernel_patches/core_hook.c_fix.patch
         do
           echo "Applying patch: $(basename $patch)"
-          patch -p1 --no-backup-if-mismatch < "$patch" || true
+          patch -p1 -F 3 --no-backup-if-mismatch < "$patch" || true
         done
+        
+        echo "--- SUSFS and Hide Stuff Patches applied ---"
+        echo "Current working directory (Kernel Root) AFTER SUSFS patches:" # Note: Kernel Root dir
+        pwd
+        cd ./common
+        git add -A && git commit -a -m "BUILD Kernel" || true
+        cd ..
+        git add -A && git commit -a -m "BUILD Kernel" || true
+        git rm --cached KernelSU-Next
 
         # Critical Makefile modifications
         sed -i '2s/check_defconfig//' build.config.gki
@@ -152,9 +161,9 @@ jobs:
         CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
         CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
         CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-        CONFIG_KPROBES is not set
-        CONFIG_HAVE_KPROBES is not set
-        CONFIG_KPROBE_EVENTS is not set
+        #CONFIG_KPROBES is not set
+        #CONFIG_HAVE_KPROBES is not set
+        #CONFIG_KPROBE_EVENTS is not set
         EOF
 
     - name: Apply Additional Patches
