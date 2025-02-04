@@ -173,17 +173,14 @@ jobs:
 
     - name: Build Kernel
       working-directory: ${{ env.KERNEL_DIR }}
-      env:
-        ARCH: arm64
-        SUBARCH: arm64
-        KBUILD_BUILD_USER: "cabagekiller"
-        KBUILD_BUILD_HOST: "Github"
-        PATH: ${{ env.CLANG_DIR }}/bin:$PATH
       run: |
-        make O=out ARCH=$ARCH defconfig
-        make -j$(nproc) O=out CC=clang \
-          LLVM=1 LLVM_IAS=1 \
-          CROSS_COMPILE=aarch64-linux-gnu-
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export KBUILD_BUILD_USER="cabagekiller"
+        export KBUILD_BUILD_HOST="Github"
+        export PATH="$TOOLS_FOLDER/clang/bin:$PATH" # Set PATH here to ensure it's used in make commands
+        make O=out ARCH=arm64 defconfig V=1
+        make O=out CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1
 
     - name: Package Artifacts
       working-directory: ${{ env.KERNEL_DIR }}/out/arch/arm64/boot
