@@ -299,7 +299,7 @@ jobs:
         echo "3. Trying chmod +x $PATCHES_SH_PATH"
         chmod +x "$PATCHES_SH_PATH"
         echo "4. Trying to execute $PATCHES_SH_PATH"
-        ./"$PATCHES_SH_PATH"
+        #./"$PATCHES_SH_PATH"
         echo "--- Execute patches.sh Step Complete ---"
     - name: Building kernel
       id: build
