@@ -140,7 +140,7 @@ jobs:
         git clone --depth=1 ${{ github.event.inputs.KERNEL_TREE }} -b ${{ github.event.inputs.KERNEL_TREE_BRANCH }} kernel_tree
         echo "kernel-folder=$(pwd)/kernel_tree" >> $GITHUB_OUTPUT
         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b kernel-4.19 susfs4ksu # Clone directly in workspace
-        git clone https://github.com/WildPlusKernel/kernel_patches.git kernel_patches # Clone directly in workspace
+        git clone https://github.com/WildPlusKernel/kernel_patches.git # Clone directly in workspace
         git clone https://github.com/cabagekiller/Non-GKI-Patches.git patches_repo
         cd kernel_tree # Now change to kernel_tree for the rest of the steps
         mkdir -p common/fs common/include/linux # Create directories upfront
@@ -183,6 +183,7 @@ jobs:
         #CORE_HOOK_C_FIX_DST="./core_hook.c_fix.patch"
         echo "Checking source patch file existence:"
         ls -l "$SUSFS_PATCH_50_SRC"
+        ls -l "SUSFS_FIX_ALL_PATCHES_SRC"
         ls -l "$HIDE_STUFF_PATCH_69_SRC"
         #ls -l "$KSU_SUSFS_PATCH_10_SRC"
         #ls -l "$SELINUX_C_FIX_SRC"
