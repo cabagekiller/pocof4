@@ -21,7 +21,7 @@ on:
         required: true
       ANYKERNEL_URL:
         description: 'AnyKernel Url (leave blank if you dont want AnyKernel)'
-        default: 'https://github.com/DjSenseii1/f4aosp'
+        default: 'https://github.com/WildPlusKernel/AnyKernel3.git'
         required: false
       ANYKERNEL_BRANCH:
         description: 'AnyKernel Branch (defaults to codename)'
@@ -29,7 +29,7 @@ on:
         required: false
       SECOND_ANYKERNEL_URL:
         description: 'Second AnyKernel Url (leave blank if you dont want AnyKernel)'
-        default: 'https://github.com/DjSenseii1/miui-hyperF4'
+        default: 'https://github.com/WildPlusKernel/AnyKernel3.git'
         required: false
       SECOND_ANYKERNEL_BRANCH:
         description: 'Second AnyKernel Branch (defaults to codename)'
