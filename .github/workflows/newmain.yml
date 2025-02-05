@@ -262,7 +262,7 @@ jobs:
         #sed -i '/obj-$(CONFIG_KSU_SUSFS_SUS_SU) += sus_su.o/d' ./fs/Makefile # Corrected path to ./fs/Makefile
         echo "fs/Makefile and build.config.gki changes applied."
         # Add SUSFS configuration settings (using a block echo for clarity) - Keep this section
-        cat >> ./arch/arm64/configs/defconfig <<EOF
+        cat >> ./arch/arm64/configs/vendor/munch_defconfig <<EOF
         CONFIG_KSU=y
         CONFIG_KSU_SUSFS=y
         CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
@@ -315,7 +315,7 @@ jobs:
         export KBUILD_BUILD_HOST="Github"
         export PATH="$TOOLS_FOLDER/clang/bin:$PATH" # Set PATH here to ensure it's used in make commands
         mkdir -p artifacts # Create the artifacts directory
-        make O=out ARCH=arm64 defconfig V=1
+        make O=out ARCH=arm64 vendor/munch_defconfig V=1
         make O=out CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1
         BUILD_END_TIME=$(date +%s)
         BUILD_ELAPSED_TIME=$((BUILD_END_TIME - BUILD_START_TIME))
