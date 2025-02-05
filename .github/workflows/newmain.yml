@@ -167,7 +167,7 @@ jobs:
         KERNEL_PATCHES_FOLDER="$WORKSPACE_FOLDER/kernel_patches"
         SUSFS_FIX_ALL_PATCHES_SRC="$KERNEL_PATCHES_FOLDER/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch"
         SUSFS_PATCH_50_SRC="$SUSFS4KSU_PATCHES_FOLDER/50_add_susfs_in_kernel-4.19.patch"
-        HIDE_STUFF_PATCH_69_SRC="$KERNEL_PATCHES_FOLDER/69_hide_stuff.patch"
+        #HIDE_STUFF_PATCH_69_SRC="$KERNEL_PATCHES_FOLDER/69_hide_stuff.patch"
         KSU_SUSFS_PATCH_10_SRC="$SUSFS4KSU_PATCHES_FOLDER/KernelSU/10_enable_susfs_for_ksu.patch"
         SELINUX_C_FIX_SRC="$KERNEL_PATCHES_FOLDER/selinux.c_fix.patch"
         APK_SIGN_C_FIX_SRC="$KERNEL_PATCHES_FOLDER/apk_sign.c_fix.patch"
@@ -175,7 +175,7 @@ jobs:
         CORE_HOOK_C_FIX_SRC="$KERNEL_PATCHES_FOLDER/core_hook.c_fix.patch"
         SUSFS_PATCH_50_DST="./50_add_susfs.patch"
         SUSFS_FIX_ALL_PATCH_DST="../KernelSU_Next/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch"
-        HIDE_STUFF_PATCH_69_DST="./69_hide_stuff.patch"
+        #HIDE_STUFF_PATCH_69_DST="./69_hide_stuff.patch"
         #KSU_SUSFS_PATCH_10_DST="./KernelSU-Next/10_enable_susfs_for_ksu.patch"
         #SELINUX_C_FIX_DST="./selinux.c_fix.patch"
         #APK_SIGN_C_FIX_DST="./apk_sign.c_fix.patch"
@@ -184,7 +184,7 @@ jobs:
         echo "Checking source patch file existence:"
         ls -l "$SUSFS_PATCH_50_SRC"
         ls -l "$SUSFS_FIX_ALL_PATCHES_SRC"
-        ls -l "$HIDE_STUFF_PATCH_69_SRC"
+        #ls -l "$HIDE_STUFF_PATCH_69_SRC"
         #ls -l "$KSU_SUSFS_PATCH_10_SRC"
         #ls -l "$SELINUX_C_FIX_SRC"
         #ls -l "$APK_SIGN_C_FIX_SRC"
@@ -205,7 +205,7 @@ jobs:
         # Optional: Verify the file has been moved (for debugging)
         ls -l "$DESTINATION_PATH"
         cp "$SUSFS_PATCH_50_SRC" "$SUSFS_PATCH_50_DST"
-        cp "$HIDE_STUFF_PATCH_69_SRC" "$HIDE_STUFF_PATCH_69_DST"
+        #cp "$HIDE_STUFF_PATCH_69_SRC" "$HIDE_STUFF_PATCH_69_DST"
         #cp "$KSU_SUSFS_PATCH_10_SRC" "$KSU_SUSFS_PATCH_10_DST"
         #cp "$SELINUX_C_FIX_SRC" "$SELINUX_C_FIX_DST"
         #cp "$APK_SIGN_C_FIX_SRC" "$APK_SIGN_C_FIX_DST"
@@ -230,7 +230,7 @@ jobs:
         echo "Applying 50_add_susfs.patch..."
         patch -p1 -F 3 -N < 50_add_susfs.patch || true
         echo "Applying 69_hide_stuff.patch..."
-        patch -p1 -F 3 -N < 69_hide_stuff.patch || true
+        #patch -p1 -F 3 -N < 69_hide_stuff.patch || true
         echo "Current working directory (Kernel Root) AFTER SUSFS patches:" # Note: Kernel Root dir
         pwd
         echo "--- SUSFS and Hide Stuff Patches applied ---"
