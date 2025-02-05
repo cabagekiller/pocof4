@@ -159,7 +159,7 @@ jobs:
         # Apply KernelSU Next (Run ONCE - ensure no repeated execution in workflow)
         echo "--- Setting up KernelSU-Next ---"
         rm -rf KernelSU-Next # Ensure fresh setup each time
-        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next
+        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
         echo "--- KernelSU-Next setup complete ---"
         # --- Debugging and Corrected Patch Copying (same as before) ---
         echo "--- Debugging Patch File Copying ---"
