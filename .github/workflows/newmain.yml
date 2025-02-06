@@ -92,39 +92,21 @@ jobs:
           python3-setuptools \
           rsync \
           ccache \
-          llvm-dev
+          llvm-dev bc binutils-dev bison ca-certificates ccache clang cmake curl file flex gcc g++ git libelf-dev libssl-dev make ninja-build python3 texinfo u-boot-tools xz-utils zlib1g-dev
         sudo apt install flex libncurses6 # Install dependencies for kernel build
         echo "tools-folder=$(pwd)" >> $GITHUB_OUTPUT
     - name: Setup Workspace Variable
       id: variable
       run: |
         echo "workspace-folder=${GITHUB_WORKSPACE}" >> $GITHUB_OUTPUT
-    - name: Cache Clang
-      uses: actions/cache@v4
-      id: cache-clang
-      with:
-       path: ${{ steps.workspace.outputs.workspace-folder }}/clang
-       key: clang-r547379-ubuntu-latest
-       restore-keys: |
-         clang-r547379-ubuntu-latest
-         clang-r547379-
+        
     - name: Download and Extract Clang
       if: steps.cache-clang.outputs.cache-hit != 'true'
       working-directory: ${{ steps.workspace.outputs.workspace-folder }}
       run: |
-        set -e
-        echo "Downloading and extracting clang..."
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz -O clang.tar.gz
-        mkdir clang
-        tar -xf clang.tar.gz -C clang
-        echo "Clang downloaded and extracted."
-    - name: Verify Clang is Cached
-      if: steps.cache-clang.outputs.cache-hit == 'true'
-      run: echo "Clang was restored from the cache!"
-
-    - name: Verify Clang is Downloaded and Extracted
-      if: steps.cache-clang.outputs.cache-hit != 'true'
-      run: echo "Clang was downloaded and extracted!"
+        git clone https://github.com/kdrag0n/proton-clang-build.git
+        cd proton-clang-build
+        ./build-llvm.py
 
     - name: Setup ccache
       uses: hendrikmuhs/ccache-action@v1.2
