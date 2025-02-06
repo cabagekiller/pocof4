@@ -125,29 +125,33 @@ jobs:
       run: |
         echo "workspace-folder=${GITHUB_WORKSPACE}" >> $GITHUB_OUTPUT
 
-    - name: Download Clang
-      id: clang
+    - name: Cache Clang
+      uses: actions/cache@v4
+      id: cache-clang
+      with:
+       path: ${{ steps.workspace.outputs.workspace-folder }}/clang
+       key: clang-r547379-ubuntu-latest
+       restore-keys: |
+         clang-r487747c-ubuntu-latest
+         clang-r487747c-
+    - name: Download and Extract Clang
+      if: steps.cache-clang.outputs.cache-hit != 'true'
       working-directory: ${{ steps.workspace.outputs.workspace-folder }}
       run: |
+        set -e
+        echo "Downloading and extracting clang..."
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-release/clang-r487747c.tar.gz -O clang.tar.gz
+        mkdir clang
+        tar -xf clang.tar.gz -C clang
+        echo "Clang downloaded and extracted."
+    - name: Verify Clang is Cached
+      if: steps.cache-clang.outputs.cache-hit == 'true'
+      run: echo "Clang was restored from the cache!"
 
-        # Clone the Proton Clang repository
-        git clone --depth=1 https://github.com/kdrag0n/proton-clang proton-clang
-
-        # Set the path to the x86_64 directory
-        CLANG_DIR="${{ steps.workspace.outputs.workspace-folder }}/proton-clang/x86_64-pc-linux-gnu"
-
-        # Check if the directory exists
-        if [ ! -d "$CLANG_DIR" ]; then
-          echo "Error: Clang directory not found: $CLANG_DIR"
-          exit 1
-        fi
-
-        # Set clang_path to the bin directory inside the archive
-        echo "clang_path=$CLANG_DIR/bin" >> $GITHUB_OUTPUT
-
-        # Display the contents of the directory to help debug
-        ls -l "$CLANG_DIR/bin"
-
+    - name: Verify Clang is Downloaded and Extracted
+      if: steps.cache-clang.outputs.cache-hit != 'true'
+      run: echo "Clang was downloaded and extracted!"
+      
     - name: Setup ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
@@ -252,16 +256,11 @@ jobs:
         export SUBARCH=arm64
         export KBUILD_BUILD_USER="cabagekiller"
         export KBUILD_BUILD_HOST="Github"
-
-        # Set PATH to include the Proton Clang binaries
-        export PATH="${{ steps.clang.outputs.clang_path }}:$PATH"
-
+        export PATH="$TOOLS_FOLDER/clang/bin:$PATH" # Set PATH here to ensure it's used in make commands
         mkdir -p artifacts
         make O=out ARCH=arm64 vendor/munch_defconfig V=1
-
         # Ensure that CC and CROSS_COMPILE are using the downloaded clang
         make O=out CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) CROSS_COMPILE=aarch64-linux-gnu-
-
         BUILD_END_TIME=$(date +%s)
         BUILD_ELAPSED_TIME=$((BUILD_END_TIME - BUILD_START_TIME))
         echo "elapsed_time=$BUILD_ELAPSED_TIME" >> $GITHUB_OUTPUT
