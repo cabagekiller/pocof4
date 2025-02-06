@@ -47,12 +47,6 @@ jobs:
     permissions:
       contents: write
 
-    # Define Environment Variables at Job Level for Reusability
-    env:
-      WORKSPACE_FOLDER: ${{ github.workspace }} # Simplify access to workspace
-      CLANG_VERSION: r487747c # Define clang version.  Centralized and easier to update.
-      CLANG_TAR_GZ: clang-${{ env.CLANG_VERSION }}.tar.gz  # Use the version in the filename
-
     steps:
     - name: Display User Inputs
       run: |
@@ -75,8 +69,16 @@ jobs:
       run: |
         set -e  # Exit immediately on error
 
+        # Define variables here
+        CLANG_VERSION="r487747c"
+        CLANG_TAR_GZ="clang-$CLANG_VERSION.tar.gz"
+
+        # Export variables to be used in subsequent steps
+        echo "clang_version=$CLANG_VERSION" >> $GITHUB_OUTPUT
+        echo "clang_tar_gz=$CLANG_TAR_GZ" >> $GITHUB_OUTPUT
+
         # Use Job-Level ENV Variable
-        cd "${{ env.WORKSPACE_FOLDER }}"
+        cd "${{ github.workspace }}"
         mkdir -p workspace
         cd workspace
 
@@ -131,7 +133,7 @@ jobs:
       id: cache-clang
       with:
         path: ${{ steps.workspace.outputs.workspace-folder }}/clang
-        key: clang-${{ env.CLANG_VERSION }}-ubuntu-latest
+        key: clang-${{ steps.workspace.outputs.clang_version }}-ubuntu-latest
         restore-keys: |
           clang-r547379-ubuntu-latest  # Retain original for compatibility
           clang-r487747c-ubuntu-latest
@@ -143,9 +145,9 @@ jobs:
       run: |
         set -e
         echo "Downloading and extracting clang..."
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-release/${{ env.CLANG_VERSION }}.tar.gz -O ${{ env.CLANG_TAR_GZ }}
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-release/${{ steps.workspace.outputs.clang_version }}.tar.gz -O ${{ steps.workspace.outputs.clang_tar_gz }}
         mkdir clang
-        tar -xf ${{ env.CLANG_TAR_GZ }} -C clang --strip-components=1 #Extract directly, cleaner
+        tar -xf ${{ steps.workspace.outputs.clang_tar_gz }} -C clang --strip-components=1 #Extract directly, cleaner
         echo "Clang downloaded and extracted."
 
     - name: Verify Clang is Cached
@@ -161,7 +163,7 @@ jobs:
       id: kernel
       run: |
         set -e
-        cd "${{ env.WORKSPACE_FOLDER }}"  #Use env variable
+        cd "${{ github.workspace }}"  #Use env variable
         git clone --depth=1 ${{ github.event.inputs.KERNEL_TREE }} -b ${{ github.event.inputs.KERNEL_TREE_BRANCH }} kernel_tree
         echo "kernel-folder=$(pwd)/kernel_tree" >> $GITHUB_OUTPUT
         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b kernel-4.19 susfs4ksu
@@ -188,8 +190,8 @@ jobs:
         curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
 
         # Patch file copying and application
-        KSU_PATCHES_FOLDER="${{ env.WORKSPACE_FOLDER }}/susfs4ksu/kernel_patches"
-        #KERNEL_PATCHES_FOLDER="${{ env.WORKSPACE_FOLDER }}/kernel_patches"  #Not using this anymore?
+        KSU_PATCHES_FOLDER="${{ github.workspace }}/susfs4ksu/kernel_patches"
+        #KERNEL_PATCHES_FOLDER="${{ github.workspace }}/kernel_patches"  #Not using this anymore?
 
         cp "$KSU_PATCHES_FOLDER/50_add_susfs_in_kernel-4.19.patch" ./50_add_susfs.patch
 
@@ -250,7 +252,7 @@ jobs:
       run: |
         set -e
         KERNEL_FOLDER="${{ steps.kernel.outputs.kernel-folder }}"
-        TOOLS_FOLDER="${{ steps.workspace.outputs.tools-folder }}"
+        TOOLS_FOLDER="${{ github.workspace }}/workspace/clang/bin" # Corrected PATH
         BUILD_START_TIME=$(date +%s)
 
         echo "Building kernel..."
@@ -258,7 +260,7 @@ jobs:
         export SUBARCH=arm64
         export KBUILD_BUILD_USER="cabagekiller"
         export KBUILD_BUILD_HOST="Github"
-        export PATH="$TOOLS_FOLDER/clang/bin:$PATH" # Set PATH here to ensure it's used in make commands
+        export PATH="$TOOLS_FOLDER:$PATH" # Set PATH here to ensure it's used in make commands
 
         mkdir -p artifacts
         make O=out ARCH=arm64 vendor/munch_defconfig V=1
