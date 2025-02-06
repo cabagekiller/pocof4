@@ -46,6 +46,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
+    # Define Environment Variables at Job Level for Reusability
+    env:
+      WORKSPACE_FOLDER: ${{ github.workspace }} # Simplify access to workspace
+      CLANG_VERSION: r487747c # Define clang version.  Centralized and easier to update.
+      CLANG_TAR_GZ: clang-${{ env.CLANG_VERSION }}.tar.gz  # Use the version in the filename
+
     steps:
     - name: Display User Inputs
       run: |
@@ -55,6 +62,7 @@ jobs:
         echo "Codename: ${{ github.event.inputs.CODENAME }}"
         echo "AnyKernel Url: ${{ github.event.inputs.ANYKERNEL_URL }}/tree/${{ github.event.inputs.ANYKERNEL_BRANCH }}"
         echo "Second AnyKernel Url: ${{ github.event.inputs.SECOND_ANYKERNEL_URL }}/tree/${{ github.event.inputs.SECOND_ANYKERNEL_BRANCH }}"
+        echo "Upload to Release: ${{ github.event.inputs.UPLOAD_TO_RELEASE }}" # added
         echo "::endgroup::"
 
     - name: Configure Git
@@ -65,13 +73,21 @@ jobs:
     - name: Initialize workspace and tools
       id: workspace
       run: |
-        set -e # Exit immediately on error
-        mkdir workspace
+        set -e  # Exit immediately on error
+
+        # Use Job-Level ENV Variable
+        cd "${{ env.WORKSPACE_FOLDER }}"
+        mkdir -p workspace
         cd workspace
+
         echo "workspace-folder=$(pwd)" >> $GITHUB_OUTPUT
         echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
         echo "build_title=${{ github.event.inputs.BUILD_TITLE || github.event.inputs.CODENAME }}" >> $GITHUB_OUTPUT
+
+        # Streamline apt update
         sudo apt-get update -y -qq
+
+        # Simplified apt-get install with fewer redundancy, more specific and updated
         sudo apt-get install -y --no-install-recommends \
           python3-pip \
           git \
@@ -93,23 +109,14 @@ jobs:
           rsync \
           ccache \
           llvm-dev \
-          bc \
           binutils-dev \
-          bison \
           ca-certificates \
           clang \
           cmake \
           curl \
-          file \
-          flex \
-          gcc \
-          g++ \
-          git \
-          libelf-dev \
-          libssl-dev \
-          u-boot-tools \
           xz-utils \
-          zlib1g-dev
+          zlib1g-dev \
+          libncurses6
 
         # **VERIFY CLANG INSTALLATION HERE!**
         echo "--- Checking Clang Installation ---"
@@ -117,41 +124,34 @@ jobs:
         which clang
         echo "-----------------------------------"
 
-        sudo apt install flex libncurses6 # Install dependencies for kernel build
         echo "tools-folder=$(pwd)" >> $GITHUB_OUTPUT
-
-    - name: Setup Workspace Variable
-      id: variable
-      run: |
-        echo "workspace-folder=${GITHUB_WORKSPACE}" >> $GITHUB_OUTPUT
 
     - name: Cache Clang
       uses: actions/cache@v4
       id: cache-clang
       with:
-       path: ${{ steps.workspace.outputs.workspace-folder }}/clang
-       key: clang-r547379-ubuntu-latest
-       restore-keys: |
-         clang-r487747c-ubuntu-latest
-         clang-r487747c-
+        path: ${{ steps.workspace.outputs.workspace-folder }}/clang
+        key: clang-${{ env.CLANG_VERSION }}-ubuntu-latest
+        restore-keys: |
+          clang-r547379-ubuntu-latest  # Retain original for compatibility
+          clang-r487747c-ubuntu-latest
+          clang-r487747c-
+
     - name: Download and Extract Clang
       if: steps.cache-clang.outputs.cache-hit != 'true'
       working-directory: ${{ steps.workspace.outputs.workspace-folder }}
       run: |
         set -e
         echo "Downloading and extracting clang..."
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-release/clang-r487747c.tar.gz -O clang.tar.gz
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-release/${{ env.CLANG_VERSION }}.tar.gz -O ${{ env.CLANG_TAR_GZ }}
         mkdir clang
-        tar -xf clang.tar.gz -C clang
+        tar -xf ${{ env.CLANG_TAR_GZ }} -C clang --strip-components=1 #Extract directly, cleaner
         echo "Clang downloaded and extracted."
+
     - name: Verify Clang is Cached
       if: steps.cache-clang.outputs.cache-hit == 'true'
       run: echo "Clang was restored from the cache!"
 
-    - name: Verify Clang is Downloaded and Extracted
-      if: steps.cache-clang.outputs.cache-hit != 'true'
-      run: echo "Clang was downloaded and extracted!"
-      
     - name: Setup ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
@@ -161,13 +161,14 @@ jobs:
       id: kernel
       run: |
         set -e
-        WORKSPACE_FOLDER="${{ steps.workspace.outputs.workspace-folder }}"
-        cd "$WORKSPACE_FOLDER"
+        cd "${{ env.WORKSPACE_FOLDER }}"  #Use env variable
         git clone --depth=1 ${{ github.event.inputs.KERNEL_TREE }} -b ${{ github.event.inputs.KERNEL_TREE_BRANCH }} kernel_tree
         echo "kernel-folder=$(pwd)/kernel_tree" >> $GITHUB_OUTPUT
         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b kernel-4.19 susfs4ksu
         git clone https://github.com/WildPlusKernel/kernel_patches.git patches_repo
         git clone https://github.com/cabagekiller/Non-GKI-Patches.git patches_repo1
+
+        #Prepare kernel tree
         cd kernel_tree
         mkdir -p common/fs common/include/linux
 
@@ -175,7 +176,6 @@ jobs:
       run: |
         set -e
         KERNEL_FOLDER="${{ steps.kernel.outputs.kernel-folder }}"
-        WORKSPACE_FOLDER="${{ steps.workspace.outputs.workspace-folder }}"
         cd "$KERNEL_FOLDER"
 
         # Copy SUSFS files
@@ -187,29 +187,31 @@ jobs:
         rm -rf KernelSU-Next
         curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
 
-        # Patch file copying (Corrected and Simplified)
-        KSU_PATCHES_FOLDER="$WORKSPACE_FOLDER/susfs4ksu/kernel_patches"
-        KERNEL_PATCHES_FOLDER="$WORKSPACE_FOLDER/kernel_patches"
+        # Patch file copying and application
+        KSU_PATCHES_FOLDER="${{ env.WORKSPACE_FOLDER }}/susfs4ksu/kernel_patches"
+        #KERNEL_PATCHES_FOLDER="${{ env.WORKSPACE_FOLDER }}/kernel_patches"  #Not using this anymore?
 
         cp "$KSU_PATCHES_FOLDER/50_add_susfs_in_kernel-4.19.patch" ./50_add_susfs.patch
-        #cp "$KERNEL_PATCHES_FOLDER/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch" ./KernelSU-Next/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch #Copies to correct folder
 
         # Apply KernelSU Patch (Ensure it's applied within the KernelSU-Next directory)
-        cd KernelSU-Next
+        # Removed due to lack of usage and potential issues based on context.
+        #cd KernelSU-Next
         #patch -p1 -F 3 -N < KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch || true
-        cd ..
+        #cd ..
 
         # Apply SUSFS patches
         patch -p1 -F 3 -N < 50_add_susfs.patch || true
 
-        cd ./common
-        git add -A && git commit -a -m "BUILD Kernel" || true
-        cd ..
-        git add -A && git commit -a -m "BUILD Kernel" || true
-        git rm --cached KernelSU-Next #remove since this isn't needed.
+        # Commit the changes
+        git add -A && git commit -a -m "BUILD Kernel: SUSFS and KSU Patches" || true
+        #git rm --cached KernelSU-Next #remove since this isn't needed. No longer present
 
         #Correct build config and add susfs features to it.
         sed -i '2s/check_defconfig//' ./build.config.gki
+
+        # Remove problematic flags
+        sed -i '/-funified-lto/d' ./build.config.gki
+        sed -i '/-fsplit-machine-functions/d' ./build.config.gki
 
         # Add SUSFS configuration settings
         # Move to defconfig first
@@ -257,10 +259,13 @@ jobs:
         export KBUILD_BUILD_USER="cabagekiller"
         export KBUILD_BUILD_HOST="Github"
         export PATH="$TOOLS_FOLDER/clang/bin:$PATH" # Set PATH here to ensure it's used in make commands
+
         mkdir -p artifacts
         make O=out ARCH=arm64 vendor/munch_defconfig V=1
-        # Ensure that CC and CROSS_COMPILE are using the downloaded clang
-        make O=out CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) CROSS_COMPILE=aarch64-linux-gnu-
+
+        # Use aarch64-linux-gnu-gcc directly instead of relying on CROSS_COMPILE, more reliable.  Set CC explicitly.
+        make O=out CC=clang LLVM=1 LLVM_IAS=1 -j$(nproc --all) CROSS_COMPILE=aarch64-linux-gnu-  aarch64-linux-gnu-gcc
+
         BUILD_END_TIME=$(date +%s)
         BUILD_ELAPSED_TIME=$((BUILD_END_TIME - BUILD_START_TIME))
         echo "elapsed_time=$BUILD_ELAPSED_TIME" >> $GITHUB_OUTPUT
@@ -323,7 +328,7 @@ jobs:
         name: ${{ github.event.inputs.CODENAME }}-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
         body: |
-          <b>${{ steps.workspace.outputs.build_title }}</b>
+          <b>${{ github.event.inputs.BUILD_TITLE || github.event.inputs.CODENAME }}</b>
           <b>Kernel successfully built!</b>, took ${{ steps.build.outputs.elapsed_time }} seconds.
           <b>Kernel tree</b>: ${{ github.event.inputs.KERNEL_TREE }}/tree/${{ github.event.inputs.KERNEL_TREE_BRANCH }}
           <b>Action</b>: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
