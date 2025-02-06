@@ -145,7 +145,7 @@ jobs:
       run: |
         set -e
         echo "Downloading and extracting clang..."
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-release/${{ steps.workspace.outputs.clang_version }}.tar.gz -O ${{ steps.workspace.outputs.clang_tar_gz }}
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/aml_uwb_341513070/clang-r487747c.tar.gz -O ${{ steps.workspace.outputs.clang_tar_gz }}
         mkdir clang
         tar -xf ${{ steps.workspace.outputs.clang_tar_gz }} -C clang --strip-components=1 #Extract directly, cleaner
         echo "Clang downloaded and extracted."
