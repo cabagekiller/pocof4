@@ -129,7 +129,6 @@ jobs:
       id: clang
       working-directory: ${{ steps.workspace.outputs.workspace-folder }}
       run: |
-        set -e
 
         # Clone the Proton Clang repository
         git clone https://github.com/kdrag0n/proton-clang proton-clang
