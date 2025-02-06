@@ -129,6 +129,8 @@ jobs:
       id: clang
       working-directory: ${{ steps.workspace.outputs.workspace-folder }}
       run: |
+        mkdir proton-clang-build
+        cd proton-clang-build
         git clone https://github.com/kdrag0n/proton-clang-build.git
         cd proton-clang-build
         ./build-llvm.py
