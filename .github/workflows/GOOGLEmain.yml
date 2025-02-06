@@ -132,10 +132,10 @@ jobs:
         set -e
 
         # Clone the Proton Clang repository
-        git clone https://github.com/kdrag0n/proton-clang .proton-clang
+        git clone https://github.com/kdrag0n/proton-clang proton-clang
 
         # Set the path to the x86_64 directory
-        CLANG_DIR="${{ steps.workspace.outputs.workspace-folder }}/.proton-clang/x86_64-pc-linux-gnu"
+        CLANG_DIR="${{ steps.workspace.outputs.workspace-folder }}/proton-clang/x86_64-pc-linux-gnu"
 
         # Check if the directory exists
         if [ ! -d "$CLANG_DIR" ]; then
