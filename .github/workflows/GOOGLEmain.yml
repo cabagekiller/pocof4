@@ -188,7 +188,7 @@ jobs:
         KERNEL_PATCHES_FOLDER="$WORKSPACE_FOLDER/kernel_patches"
 
         cp "$KSU_PATCHES_FOLDER/50_add_susfs_in_kernel-4.19.patch" ./50_add_susfs.patch
-        cp "$KERNEL_PATCHES_FOLDER/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch" ./KernelSU-Next/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch #Copies to correct folder
+        #cp "$KERNEL_PATCHES_FOLDER/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch" ./KernelSU-Next/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch #Copies to correct folder
 
         # Apply KernelSU Patch (Ensure it's applied within the KernelSU-Next directory)
         cd KernelSU-Next
