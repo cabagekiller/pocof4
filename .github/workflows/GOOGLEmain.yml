@@ -175,8 +175,9 @@ jobs:
         cd "$KERNEL_FOLDER"
 
         # Copy SUSFS files
-        cp "$WORKSPACE_FOLDER/susfs4ksu/kernel_patches/fs/*" ./fs/
-        cp "$WORKSPACE_FOLDER/susfs4ksu/kernel_patches/include/linux/*" ./include/linux/
+        cp "$WORKSPACE_FOLDER/susfs4ksu/kernel_patches/fs/susfs.c" ./fs/
+        cp "$WORKSPACE_FOLDER/susfs4ksu/kernel_patches/include/linux/susfs.h" ./include/linux/
+        cp "$WORKSPACE_FOLDER/susfs4ksu/kernel_patches/include/linux/susfs_def.h" ./include/linux/
 
         # Apply KernelSU Next
         rm -rf KernelSU-Next
