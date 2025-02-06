@@ -163,7 +163,7 @@ jobs:
         echo "kernel-folder=$(pwd)/kernel_tree" >> $GITHUB_OUTPUT
         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b kernel-4.19 susfs4ksu
         git clone https://github.com/WildPlusKernel/kernel_patches.git patches_repo
-        git clone https://github.com/cabagekiller/Non-GKI-Patches.git patches_repo
+        git clone https://github.com/cabagekiller/Non-GKI-Patches.git patches_repo1
         cd kernel_tree
         mkdir -p common/fs common/include/linux
 
@@ -232,7 +232,7 @@ jobs:
       working-directory: ${{ steps.kernel.outputs.kernel-folder }}
       run: |
         set -e
-        PATCHES_SH_PATH="../patches_repo/patches.sh"
+        PATCHES_SH_PATH="../patches_repo1/patches.sh"
         chmod +x "$PATCHES_SH_PATH"
         echo "Executing patches.sh"
         #./"$PATCHES_SH_PATH" #Disabled for now.
