@@ -30,7 +30,7 @@ on:
       ANYKERNEL_BRANCH:
         description: 'AnyKernel3 Git Branch'
         required: false
-        default: 'android-4.19'  # Corrected branch name
+        default: 'android-4.19'
       UPLOAD_TO_RELEASE:
         description: 'Upload to release'
         type: boolean
@@ -39,7 +39,6 @@ on:
         description: 'Prefix for the zip files'
         required: false
         default: 'CabageKernel'
-
 
 jobs:
   build:
@@ -239,8 +238,8 @@ jobs:
           ANYKERNEL_URL="${{ github.event.inputs.ANYKERNEL_URL }}"
           ANYKERNEL_BRANCH="${{ github.event.inputs.ANYKERNEL_BRANCH }}"
           ZIP_NAME_PREFIX="${{ github.event.inputs.ZIP_NAME_PREFIX }}"
+          WORKSPACE="${{ github.workspace }}"
           OUTPUT_DIR="$KERNEL_FOLDER/out/arch/arm64/boot"
-
           cd "$OUTPUT_DIR"
 
           # Function to handle AnyKernel creation
@@ -249,11 +248,14 @@ jobs:
             local ak_branch="$2"
             local ak_name_prefix="$3"
             local zip_output_var="$4"
+            local codename="${{ github.event.inputs.CODENAME }}"
+            local workspace="${{ github.workspace }}"
 
             if [[ -n "$ak_url" ]]; then
-              local ak_branch_final="${ak_branch:-munch}"
+              local ak_branch_final="${ak_branch:-$codename}"
               local ak_folder_name="${ak_name_prefix}-AnyKernel"
-              local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-munch.zip"
+              local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-$codename.zip"
+              local zip_path="$workspace/$zip_name"
 
               echo "Cloning AnyKernel3: $ak_url, branch: $ak_branch_final to $ak_folder_name"
               git clone --recursive --depth=1 -b "$ak_branch_final" "$ak_url" "$ak_folder_name"
@@ -273,14 +275,14 @@ jobs:
 
               echo "Creating zip file: $zip_name"
               cd "$ak_folder_name"
-              zip -q -r "../$zip_name" *
+              zip -q -r "$zip_path" *
               cd ..
 
-              echo "$zip_output_var=$zip_name" >> $GITHUB_OUTPUT
-              echo "Created $zip_name"
+              echo "::set-output name=$zip_output_var::$zip_path"
+              echo "Created $zip_name at $zip_path"
             else
               echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
-              echo "$zip_output_var=" >> $GITHUB_OUTPUT
+              echo "::set-output name=$zip_output_var::"
             fi
           }
 
@@ -288,14 +290,11 @@ jobs:
           export -f handle_anykernel
 
           # Call the function for each AnyKernel.
-          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}" "anykernel_zipname"
-          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}" "second_anykernel_zipname"
-
-          # Set both zip paths to be uploaded as output variables.
-          echo "::set-output name=anykernel_zipname::$(echo "$anykernel_zipname")"
-          echo "::set-output name=second_anykernel_zipname::$(echo "$second_anykernel_zipname")"
+          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-AOSP" "anykernel_zipname"
+          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-HYPEROS" "second_anykernel_zipname"
 
     - name: Upload to Release
+      if: ${{ github.event.inputs.UPLOAD_TO_RELEASE == 'true' && (steps.prepare_anykernel.outputs.anykernel_zipname != '' || steps.prepare_anykernel.outputs.second_anykernel_zipname != '') }}
       uses: softprops/action-gh-release@v1
       with:
         files: |
