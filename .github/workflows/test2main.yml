@@ -290,8 +290,8 @@ jobs:
           export -f handle_anykernel
 
           # Call the function for each AnyKernel.
-          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-AOSP" "anykernel_zipname"
-          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-HYPEROS" "second_anykernel_zipname"
+          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}" "anykernel_zipname"
+          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}" "second_anykernel_zipname"
 
     - name: Upload to Release
       if: ${{ github.event.inputs.UPLOAD_TO_RELEASE == 'true' && (steps.prepare_anykernel.outputs.anykernel_zipname != '' || steps.prepare_anykernel.outputs.second_anykernel_zipname != '') }}
