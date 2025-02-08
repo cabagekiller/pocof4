@@ -1,4 +1,4 @@
-name: Kernel Builddwadawd (munch) - SUSFS + KSU NEXT | clang-r547379
+name: Kernel Test Build (munch) - SUSFS + KSU NEXT | clang-r547379
 
 on:
   pull_request:
