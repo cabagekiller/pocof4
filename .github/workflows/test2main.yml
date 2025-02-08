@@ -23,10 +23,6 @@ on:
         description: 'Second AnyKernel Branch (defaults to codename)'
         required: false
         default: 'main'
-      UPLOAD_TO_RELEASE:
-        description: 'Upload to release'
-        type: boolean
-        default: true
       KERNEL_FOLDER:
         description: 'Path to the root of the kernel source'
         required: true
@@ -302,7 +298,6 @@ jobs:
           echo "::set-output name=ZIP_PATHS::$anykernel_zipname $second_anykernel_zipname"
 
     - name: Upload to Release
-      if: ${{ github.event.inputs.UPLOAD_TO_RELEASE == 'true' && steps.anykernel.outputs.anykernel_zipname != '' }}
       uses: softprops/action-gh-release@v1
       with:
         files: |
@@ -318,8 +313,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload Kernel Artifacts (if not releasing)
-      if: ${{ github.event.inputs.UPLOAD_TO_RELEASE != 'true' }}
+    - name: Upload Kernel Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Artifacts
