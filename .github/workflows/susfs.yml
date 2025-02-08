@@ -383,7 +383,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/${{ steps.anykernel.outputs.anykernel_zipname }}
+          ${{ steps.kernel.outputs.kernel-folder }}/${{ steps.anykernel.outputs.anykernel_zipname }}
           ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/${{ steps.second_anykernel.outputs.second_anykernel_zipname }}
         name: ${{ github.event.inputs.CODENAME }}-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
@@ -396,7 +396,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Kernel Artifacts (if not releasing)
-      if: ${{ github.event.inputs.UPLOAD_TO_RELEASE != 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Artifacts
