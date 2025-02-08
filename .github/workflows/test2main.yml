@@ -19,10 +19,6 @@ on:
       SECOND_ANYKERNEL_URL:
         description: 'Second AnyKernel Url (leave blank if you dont want AnyKernel)'
         required: false
-      SECOND_ANYKERNEL_BRANCH:
-        description: 'Second AnyKernel Branch (defaults to codename)'
-        required: false
-        default: 'main'
       KERNEL_FOLDER:
         description: 'Path to the root of the kernel source'
         required: true
@@ -35,6 +31,10 @@ on:
         description: 'AnyKernel3 Git Branch'
         required: false
         default: 'android-4.19'  # Corrected branch name
+      UPLOAD_TO_RELEASE:
+        description: 'Upload to release'
+        type: boolean
+        default: true
       ZIP_NAME_PREFIX:
         description: 'Prefix for the zip files'
         required: false
