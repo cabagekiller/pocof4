@@ -25,7 +25,7 @@ on:
         required: false
       ANYKERNEL_BRANCH:
         description: 'AnyKernel Branch (defaults to codename)'
-        default: 'main'
+        default: 'android-4.19'
         required: false
       SECOND_ANYKERNEL_URL:
         description: 'Second AnyKernel Url (leave blank if you dont want AnyKernel)'
@@ -33,12 +33,20 @@ on:
         required: false
       SECOND_ANYKERNEL_BRANCH:
         description: 'Second AnyKernel Branch (defaults to codename)'
-        default: 'main'
+        default: 'android-4.19'
         required: false
       UPLOAD_TO_RELEASE:
         description: 'Upload to release'
         type: boolean
         default: false
+      KERNEL_OUTPUT_PATH:
+        description: 'Path to kernel output (contains Image.gz, dtb.img, dtbo.img)'
+        required: true
+        default: 'out/arch/arm64/boot'
+      ZIP_NAME:
+        description: 'Output ZIP Filename'
+        required: true
+        default: 'kernel-anykernel3.zip'
 
 jobs:
   build:
@@ -341,36 +349,38 @@ jobs:
         name: build-artifacts
         path: ${{ steps.kernel.outputs.kernel-folder }}/artifacts/
 
-    - name: Handle AnyKernel3 zips
+    - name: Prepare AnyKernel3
+      id: prepare_anykernel
       run: |
-        set -e
-        KERNEL_FOLDER="${{ steps.kernel.outputs.kernel-folder }}"
-        cd "$KERNEL_FOLDER/out/arch/arm64/boot/"
-        # Function to handle AnyKernel creation (DRY principle)
-        handle_anykernel() {
-          local ak_url="$1"
-          local ak_branch="$2"
-          local ak_name_prefix="$3"
-          local zip_output_var="$4"
-          if [[ -n "$ak_url" ]]; then
-            local ak_branch_final="${ak_branch:-${{ github.event.inputs.CODENAME }}}" # Default branch to codename if empty
-            local ak_folder_name="${ak_name_prefix}AnyKernel"
-            git clone --recursive --depth=1 "$ak_url" -b "$ak_branch_final" "$ak_folder_name"
-            if [ -e "Image.gz" ]; then cp -f Image.gz "$ak_folder_name"; fi
-            if [ -e "dtb.img" ]; then mv -f dtb.img dtb; cp -f dtb "$ak_folder_name/dtb"; fi
-            if [ -e "dtbo.img" ]; then cp -f dtbo.img "$ak_folder_name"; fi
-            local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-${{ github.event.inputs.CODENAME }}.zip"
-            cd "$ak_folder_name"
-            zip -q -r "../$zip_name" *
-            cd ..
-            echo "$zip_output_var=$zip_name" >> $GITHUB_OUTPUT
-            echo "Created $zip_name"
+          set -e
+          KERNEL_OUTPUT_PATH="${{ github.workspace }}/${{ github.event.inputs.KERNEL_OUTPUT_PATH }}"
+          ANYKERNEL_URL="${{ github.event.inputs.ANYKERNEL_URL }}"
+          ANYKERNEL_BRANCH="${{ github.event.inputs.ANYKERNEL_BRANCH }}"
+          ZIP_NAME="${{ github.event.inputs.ZIP_NAME }}"
+
+          ANYKERNEL_FOLDER="AnyKernel3"
+
+          echo "Cloning AnyKernel3 from $ANYKERNEL_URL, branch $ANYKERNEL_BRANCH into $ANYKERNEL_FOLDER"
+          git clone --depth=1 -b "$ANYKERNEL_BRANCH" "$ANYKERNEL_URL" "$ANYKERNEL_FOLDER"
+
+          echo "Copying kernel files..."
+          cp -f "$KERNEL_OUTPUT_PATH/Image.gz" "$ANYKERNEL_FOLDER/" || echo "Image.gz not found."
+          if [ -f "$KERNEL_OUTPUT_PATH/dtb.img" ]; then
+            mkdir -p "$ANYKERNEL_FOLDER/dtb"
+            mv -f "$KERNEL_OUTPUT_PATH/dtb.img" "$ANYKERNEL_FOLDER/dtb/dtb"
+          elif [ -d "$KERNEL_OUTPUT_PATH/dtb" ]; then
+               mv -f "$KERNEL_OUTPUT_PATH/dtb" "$ANYKERNEL_FOLDER/"
           else
-            echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
+              echo "No dtb.img or dtb directory found"
           fi
-        }
-        handle_anykernel "${{ github.event.inputs.ANYKERNEL_URL }}" "${{ github.event.inputs.ANYKERNEL_BRANCH }}" "N0kernel-AOSP" "anykernel_zipname"
-        handle_anykernel "${{ github.event.inputs.SECOND_ANYKERNEL_URL }}" "${{ github.event.inputs.SECOND_ANYKERNEL_BRANCH }}" "N0kernel-HYPEROS" "second_anykernel_zipname"
+          cp -f "$KERNEL_OUTPUT_PATH/dtbo.img" "$ANYKERNEL_FOLDER/" || echo "dtbo.img not found."
+          cd "$ANYKERNEL_FOLDER"
+
+          echo "Creating zip file: $ZIP_NAME"
+          zip -r -q "${{ github.workspace }}/$ZIP_NAME" *
+
+          echo "ZIP_PATH=${{ github.workspace }}/$ZIP_NAME" >> $GITHUB_OUTPUT
+
     - name: Upload to Release
       if: ${{ github.event.inputs.UPLOAD_TO_RELEASE == 'true' }}
       uses: softprops/action-gh-release@v2
