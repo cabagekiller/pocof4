@@ -350,7 +350,7 @@ jobs:
       id: prepare_anykernel
       run: |
           set -e
-          KERNEL_OUTPUT_PATH="${{ github.workspace }}/${{ github.event.inputs.KERNEL_OUTPUT_PATH }}"
+          KERNEL_OUTPUT_PATH="/home/runner/work/pocof4testing/pocof4testing/workspace/kernel_tree/out/arch/arm64/boot"
           ANYKERNEL_URL="${{ github.event.inputs.ANYKERNEL_URL }}"
           ANYKERNEL_BRANCH="${{ github.event.inputs.ANYKERNEL_BRANCH }}"
           ZIP_NAME="${{ github.event.inputs.ZIP_NAME }}"
