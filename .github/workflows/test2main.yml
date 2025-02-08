@@ -201,9 +201,6 @@ jobs:
         EOF
 
     - name: Execute patches.sh - USING WORKING-DIRECTORY - REMOVED
-      # This step isn't adding anything, as far as I can tell.  If you REALLY
-      # need it, put a more specific command in here.
-      #working-directory: ${{ steps.kernel.outputs.kernel-folder }}
       run: echo "patches.sh execution removed"
 
     - name: Building kernel
@@ -242,19 +239,25 @@ jobs:
           ANYKERNEL_URL="${{ github.event.inputs.ANYKERNEL_URL }}"
           ANYKERNEL_BRANCH="${{ github.event.inputs.ANYKERNEL_BRANCH }}"
           ZIP_NAME_PREFIX="${{ github.event.inputs.ZIP_NAME_PREFIX }}"
-          cd "$KERNEL_FOLDER/out/arch/arm64/boot/"
+          OUTPUT_DIR="$KERNEL_FOLDER/out/arch/arm64/boot"
+
+          cd "$OUTPUT_DIR"
+
           # Function to handle AnyKernel creation
           handle_anykernel() {
             local ak_url="$1"
             local ak_branch="$2"
             local ak_name_prefix="$3"
             local zip_output_var="$4"
+
             if [[ -n "$ak_url" ]]; then
               local ak_branch_final="${ak_branch:-munch}"
               local ak_folder_name="${ak_name_prefix}-AnyKernel"
               local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-munch.zip"
+
               echo "Cloning AnyKernel3: $ak_url, branch: $ak_branch_final to $ak_folder_name"
               git clone --recursive --depth=1 -b "$ak_branch_final" "$ak_url" "$ak_folder_name"
+
               # Copy Kernel files.
               echo "Copying kernel files to AnyKernel directory"
               cp -f Image.gz "$ak_folder_name/" || echo "Image.gz not found."
@@ -263,35 +266,42 @@ jobs:
                 mv -f dtb.img "$ak_folder_name/dtb/dtb"
               elif [ -d dtb ]; then
                  mv -f dtb "$ak_folder_name/"
-             else
+              else
                 echo "No dtb.img or dtb directory found"
-             fi
-             cp -f dtbo.img "$ak_folder_name/"  || echo "dtbo.img not found."
-             echo "Creating zip file: $zip_name"
-             cd "$ak_folder_name"
-             zip -q -r "../$zip_name" *
-             cd ..
-             echo "ZIP_PATH=$zip_name" >> $GITHUB_OUTPUT  # Use relative path
-             echo "Created $zip_name"
-           else
-             echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
-             echo "ZIP_PATH=" >> $GITHUB_OUTPUT # Set to empty string
-           fi
-         }
-         # Ensure variables are exported
-         export -f handle_anykernel
-         # Call the function for each AnyKernel.  The output is stored as the zip file name for later.
-         handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-AOSP" "anykernel_zipname"
-         handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-HYPEROS" "second_anykernel_zipname"
-         # Set both zip paths to be uploaded.  If the URL is not provided, the variable will be empty
-         echo "ZIP_PATHS=$anykernel_zipname $second_anykernel_zipname" >> $GITHUB_OUTPUT
-         echo "::set-output name=ZIP_PATHS::$anykernel_zipname $second_anykernel_zipname"
+              fi
+              cp -f dtbo.img "$ak_folder_name/"  || echo "dtbo.img not found."
+
+              echo "Creating zip file: $zip_name"
+              cd "$ak_folder_name"
+              zip -q -r "../$zip_name" *
+              cd ..
+
+              echo "$zip_output_var=$zip_name" >> $GITHUB_OUTPUT
+              echo "Created $zip_name"
+            else
+              echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
+              echo "$zip_output_var=" >> $GITHUB_OUTPUT
+            fi
+          }
+
+          # Ensure variables are exported
+          export -f handle_anykernel
+
+          # Call the function for each AnyKernel.
+          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-AOSP" "anykernel_zipname"
+          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}-HYPEROS" "second_anykernel_zipname"
+
+          # Set both zip paths to be uploaded as output variables.
+          echo "::set-output name=anykernel_zipname::$(echo "$anykernel_zipname")"
+          echo "::set-output name=second_anykernel_zipname::$(echo "$second_anykernel_zipname")"
+
     - name: Upload to Release
+      if: ${{ github.event.inputs.UPLOAD_TO_RELEASE == 'true' && (steps.prepare_anykernel.outputs.anykernel_zipname != '' || steps.prepare_anykernel.outputs.second_anykernel_zipname != '') }}
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/${{ steps.anykernel.outputs.anykernel_zipname }}
-          ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/${{ steps.anykernel.outputs.second_anykernel_zipname }}
+          ${{ steps.prepare_anykernel.outputs.anykernel_zipname }}
+          ${{ steps.prepare_anykernel.outputs.second_anykernel_zipname }}
         name: ${{ github.event.inputs.CODENAME }}-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
         body: |
@@ -299,8 +309,8 @@ jobs:
           <b>Kernel successfully built!</b>, took ${{ steps.build.outputs.elapsed_time }} seconds.
           <b>Kernel tree</b>: ${{ github.event.inputs.KERNEL_TREE }}/tree/${{ github.event.inputs.KERNEL_TREE_BRANCH }}
           <b>Action</b>: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Kernel Artifacts
       uses: actions/upload-artifact@v4
@@ -310,12 +320,13 @@ jobs:
           ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/Image.gz
           ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/dtb
           ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/dtbo.img
+
     - name: Upload AnyKernel Artifacts (if not releasing and URLs provided)
       if: ${{ github.event.inputs.UPLOAD_TO_RELEASE != 'true' && (github.event.inputs.ANYKERNEL_URL != '' || github.event.inputs.SECOND_ANYKERNEL_URL != '')}}
       uses: actions/upload-artifact@v4
       with:
         name: AnyKernel-Artifacts
         path: |
-          ${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/*AnyKernel*/
-          !${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot/*AnyKernel*/.git
-          !${{ steps.kernel.outputs.kernel-folder }}/out/arch/arm64/boot
+          AnyKernel3-Artifacts/*AnyKernel*/
+          !AnyKernel3-Artifacts/*AnyKernel*/.git
+          !AnyKernel3-Artifacts
