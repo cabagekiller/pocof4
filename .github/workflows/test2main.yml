@@ -16,9 +16,6 @@ on:
         description: 'Phone Codename'
         default: 'munch'
         required: true
-      SECOND_ANYKERNEL_URL:
-        description: 'Second AnyKernel Url (leave blank if you dont want AnyKernel)'
-        required: false
       KERNEL_FOLDER:
         description: 'Path to the root of the kernel source'
         required: true
@@ -230,68 +227,66 @@ jobs:
         name: build-artifacts
         path: ${{ steps.kernel.outputs.kernel-folder }}/out/
 
-    - name: Prepare AnyKernel3 Zips
+    - name: Prepare AnyKernel3 Zip
       id: prepare_anykernel
       run: |
-          set -e
-          KERNEL_FOLDER="${{ github.event.inputs.KERNEL_FOLDER }}"
-          ANYKERNEL_URL="${{ github.event.inputs.ANYKERNEL_URL }}"
-          ANYKERNEL_BRANCH="${{ github.event.inputs.ANYKERNEL_BRANCH }}"
-          ZIP_NAME_PREFIX="${{ github.event.inputs.ZIP_NAME_PREFIX }}"
-          WORKSPACE="${{ github.workspace }}"
-          OUTPUT_DIR="$KERNEL_FOLDER/out/arch/arm64/boot"
-          cd "$OUTPUT_DIR"
+        set -e
+        KERNEL_FOLDER="${{ github.event.inputs.KERNEL_FOLDER }}"
+        ANYKERNEL_URL="${{ github.event.inputs.ANYKERNEL_URL }}"
+        ANYKERNEL_BRANCH="${{ github.event.inputs.ANYKERNEL_BRANCH }}"
+        ZIP_NAME_PREFIX="${{ github.event.inputs.ZIP_NAME_PREFIX }}"
+        WORKSPACE="${{ github.workspace }}"
+        OUTPUT_DIR="$KERNEL_FOLDER/out/arch/arm64/boot"
+        cd "$OUTPUT_DIR"
 
-          # Function to handle AnyKernel creation
-          handle_anykernel() {
-            local ak_url="$1"
-            local ak_branch="$2"
-            local ak_name_prefix="$3"
-            local zip_output_var="$4"
-            local codename="${{ github.event.inputs.CODENAME }}"
-            local workspace="${{ github.workspace }}"
+        # Function to handle AnyKernel creation
+        handle_anykernel() {
+         local ak_url="$1"
+         local ak_branch="$2"
+         local ak_name_prefix="$3"
+         local codename="${{ github.event.inputs.CODENAME }}"
+         local workspace="${{ github.workspace }}"
 
-            if [[ -n "$ak_url" ]]; then
-              local ak_branch_final="${ak_branch:-$codename}"
-              local ak_folder_name="${ak_name_prefix}-AnyKernel"
-              local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-$codename.zip"
-              local zip_path="$workspace/$zip_name"
+        if [[ -n "$ak_url" ]]; then
+         local ak_branch_final="${ak_branch:-$codename}"
+         local ak_folder_name="${ak_name_prefix}-AnyKernel" # Single folder name
+         local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-$codename.zip"
+         local zip_path="$workspace/$zip_name"
 
-              echo "Cloning AnyKernel3: $ak_url, branch: $ak_branch_final to $ak_folder_name"
-              git clone --recursive --depth=1 -b "$ak_branch_final" "$ak_url" "$ak_folder_name"
+         echo "Cloning AnyKernel3: $ak_url, branch: $ak_branch_final to $ak_folder_name"
+         git clone --recursive --depth=1 -b "$ak_branch_final" "$ak_url" "$ak_folder_name"
 
-              # Copy Kernel files.
-              echo "Copying kernel files to AnyKernel directory"
-              cp -f Image.gz "$ak_folder_name/" || echo "Image.gz not found."
-              if [ -f dtb.img ]; then
-                mkdir -p "$ak_folder_name/dtb"
-                mv -f dtb.img "$ak_folder_name/dtb/dtb"
-              elif [ -d dtb ]; then
-                 mv -f dtb "$ak_folder_name/"
-              else
-                echo "No dtb.img or dtb directory found"
-              fi
-              cp -f dtbo.img "$ak_folder_name/"  || echo "dtbo.img not found."
+         # Copy Kernel files.
+          echo "Copying kernel files to AnyKernel directory"
+          cp -f Image.gz "$ak_folder_name/" || echo "Image.gz not found."
+        if [ -f dtb.img ]; then
+          mkdir -p "$ak_folder_name/dtb"
+          mv -f dtb.img "$ak_folder_name/dtb/dtb"
+        elif [ -d dtb ]; then
+          mv -f dtb "$ak_folder_name/"
+        else
+          echo "No dtb.img or dtb directory found"
+        fi
+          cp -f dtbo.img "$ak_folder_name/"  || echo "dtbo.img not found."
 
-              echo "Creating zip file: $zip_name"
-              cd "$ak_folder_name"
-              zip -q -r "$zip_path" *
-              cd ..
+          echo "Creating zip file: $zip_name"
+          cd "$ak_folder_name"
+          zip -q -r "$zip_path" *
+          cd ..
 
-              echo "::set-output name=$zip_output_var::$zip_path"
-              echo "Created $zip_name at $zip_path"
-            else
-              echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
-              echo "::set-output name=$zip_output_var::"
-            fi
-          }
+          echo "anykernel_zipname=$zip_path" >> "$GITHUB_OUTPUT" # Environment file output
+          echo "Created $zip_name at $zip_path"
+        else
+          echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
+          echo "anykernel_zipname=" >> "$GITHUB_OUTPUT" # Empty output
+        fi
+        }
 
-          # Ensure variables are exported
-          export -f handle_anykernel
+        # Ensure variables are exported
+        export -f handle_anykernel
 
-          # Call the function for each AnyKernel.
-          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}" "anykernel_zipname"
-          handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}" "second_anykernel_zipname"
+        # Call the function for the single AnyKernel.
+        handle_anykernel "$ANYKERNEL_URL" "$ANYKERNEL_BRANCH" "${ZIP_NAME_PREFIX}" "anykernel_zipname"
 
     - name: Upload to Release
       if: ${{ github.event.inputs.UPLOAD_TO_RELEASE == 'true' && (steps.prepare_anykernel.outputs.anykernel_zipname != '' || steps.prepare_anykernel.outputs.second_anykernel_zipname != '') }}
