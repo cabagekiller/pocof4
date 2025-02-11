@@ -125,7 +125,7 @@ jobs:
         # Setup KernelSU-Next
         echo "--- Setting up KernelSU-Next ---"
         rm -rf KernelSU-Next
-        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
+        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next
         echo "--- KernelSU-Next setup complete ---"
 
         # Move SUSFS KSU patch
