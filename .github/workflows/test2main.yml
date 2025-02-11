@@ -176,6 +176,8 @@ jobs:
         CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
         CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
         CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
+        CONFIG_KPROBES=y
+        CONFIG_KPROBE_EVENTS=y
         EOF
         cat >> ./arch/arm64/configs/defconfig <<EOF
         CONFIG_KSU=y
@@ -194,6 +196,8 @@ jobs:
         CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
         CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
         CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
+        CONFIG_KPROBES=y
+        CONFIG_KPROBE_EVENTS=y
         EOF
 
     - name: Execute patches.sh - USING WORKING-DIRECTORY - REMOVED
@@ -241,48 +245,67 @@ jobs:
 
         # Function to handle AnyKernel creation
         handle_anykernel() {
-         local ak_url="$1"
-         local ak_branch="$2"
-         local ak_name_prefix="$3"
-         local codename="${{ github.event.inputs.CODENAME }}"
-         local workspace="${{ github.workspace }}"
+          local ak_url="$1"
+          local ak_branch="$2"
+          local ak_name_prefix="$3"
+          local codename="${{ github.event.inputs.CODENAME }}"
+          local workspace="${{ github.workspace }}"
 
-        if [[ -n "$ak_url" ]]; then
-         local ak_branch_final="${ak_branch:-$codename}"
-         local ak_folder_name="${ak_name_prefix}-AnyKernel" # Single folder name
-         local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-$codename.zip"
-         local zip_path="$workspace/$zip_name"
+          if [[ -n "$ak_url" ]]; then
+            local ak_branch_final="${ak_branch:-$codename}"
+            local ak_folder_name="${ak_name_prefix}-AnyKernel"  # Single folder name
+            local zip_name="${ak_name_prefix}-KSUNEXT-SUSFS-$codename.zip"
+            local zip_path="$workspace/$zip_name"
 
-         echo "Cloning AnyKernel3: $ak_url, branch: $ak_branch_final to $ak_folder_name"
-         git clone --recursive --depth=1 -b "$ak_branch_final" "$ak_url" "$ak_folder_name"
+            echo "Cloning AnyKernel3: $ak_url, branch: $ak_branch_final to $ak_folder_name"
+            git clone --recursive --depth=1 -b "$ak_branch_final" "$ak_url" "$ak_folder_name"
 
-         # Copy Kernel files.
-          echo "Copying kernel files to AnyKernel directory"
-          cp -f Image.gz "$ak_folder_name/" || echo "Image.gz not found."
-        if [ -f dtb.img ]; then
-          mkdir -p "$ak_folder_name/dtb"
-          mv -f dtb.img "$ak_folder_name/dtb/dtb"
-        elif [ -d dtb ]; then
-          mv -f dtb "$ak_folder_name/"
-        else
-          echo "No dtb.img or dtb directory found"
-        fi
-          cp -f dtbo.img "$ak_folder_name/"  || echo "dtbo.img not found."
+            echo "Copying kernel files to AnyKernel directory"
 
-          echo "Creating zip file: $zip_name"
-          cd "$ak_folder_name"
-          zip -q -r "$zip_path" *
-          cd ..
+            # Copy uncompressed kernel image
+            cp -f Image "$ak_folder_name/" || echo "Image not found."
 
-          echo "anykernel_zipname=$zip_path" >> "$GITHUB_OUTPUT" # Environment file output
-          echo "Created $zip_name at $zip_path"
-        else
-          echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
-          echo "anykernel_zipname=" >> "$GITHUB_OUTPUT" # Empty output
-        fi
+            # Copy compressed kernel image (GZIP)
+            cp -f Image.gz "$ak_folder_name/" || echo "Image.gz not found."
+
+            # Copy concatenated Image.gz-dtb (CAT)
+            cp -f Image.gz-dtb "$ak_folder_name/" || echo "Image.gz-dtb not found."
+
+            # Copy dtbo image
+            cp -f dtbo.img "$ak_folder_name/" || echo "dtbo.img not found."
+
+            # Copy DTB files from dts/vendor/qcom (DTC)
+            if [ -d dts/vendor/qcom ]; then
+              cp -f dts/vendor/qcom/kona-v2.dtb "$ak_folder_name/" || echo "kona-v2.dtb not found."
+              cp -f dts/vendor/qcom/kona.dtb "$ak_folder_name/" || echo "kona.dtb not found."
+              cp -f dts/vendor/qcom/kona-v2.1.dtb "$ak_folder_name/" || echo "kona-v2.1.dtb not found."
+            else
+              echo "Directory dts/vendor/qcom not found."
+            fi
+
+            # Optionally, handle legacy dtb.img or dtb directory if present
+            if [ -f dtb.img ]; then
+              mkdir -p "$ak_folder_name/dtb"
+              mv -f dtb.img "$ak_folder_name/dtb/dtb"
+            elif [ -d dtb ]; then
+              mv -f dtb "$ak_folder_name/"
+            else
+              echo "No dtb.img or dtb directory found"
+            fi
+
+            echo "Creating zip file: $zip_name"
+            cd "$ak_folder_name"
+            zip -q -r "$zip_path" *
+            cd ..
+            echo "anykernel_zipname=$zip_path" >> "$GITHUB_OUTPUT"  # Set output variable
+            echo "Created $zip_name at $zip_path"
+          else
+            echo "Skipping $ak_name_prefix AnyKernel (URL not provided)."
+            echo "anykernel_zipname=" >> "$GITHUB_OUTPUT"  # Empty output
+          fi
         }
 
-        # Ensure variables are exported
+        # Export the function so that it is available in the shell
         export -f handle_anykernel
 
         # Call the function for the single AnyKernel.
