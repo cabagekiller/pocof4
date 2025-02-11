@@ -263,13 +263,13 @@ jobs:
             echo "Copying kernel files to AnyKernel directory"
 
             # Copy uncompressed kernel image
-            cp -f Image "$ak_folder_name/" || echo "Image not found."
+            #cp -f Image "$ak_folder_name/" || echo "Image not found."
 
             # Copy compressed kernel image (GZIP)
             cp -f Image.gz "$ak_folder_name/" || echo "Image.gz not found."
 
             # Copy concatenated Image.gz-dtb (CAT)
-            cp -f Image.gz-dtb "$ak_folder_name/" || echo "Image.gz-dtb not found."
+            #cp -f Image.gz-dtb "$ak_folder_name/" || echo "Image.gz-dtb not found."
 
             # Copy dtbo image
             cp -f dtbo.img "$ak_folder_name/" || echo "dtbo.img not found."
